@@ -13,6 +13,44 @@
 </head>
 <body>
 
+<div id="auth-overlay">
+  <div id="auth-box">
+    <div id="auth-brand">
+      <span id="auth-brand-icon">🚌</span>
+      <h1>Tablica kierunkowa</h1>
+    </div>
+
+    <div id="auth-remember-badge">Urządzenie zostanie zapamiętane na stałe (F10)</div>
+
+    <div id="auth-choice-screen">
+      <p id="auth-choice-hint">Zaloguj się lub załóż konto, aby korzystać z aplikacji.</p>
+      <button type="button" id="auth-choice-login-btn" class="auth-choice-btn">Zaloguj się</button>
+      <button type="button" id="auth-choice-register-btn" class="auth-choice-btn">Załóż konto</button>
+      <p id="auth-f10-hint">Wskazówka: naciśnij <kbd>F10</kbd>, aby zalogować się na stałe na tym urządzeniu.</p>
+    </div>
+
+    <form id="auth-form" hidden>
+      <h2 id="auth-form-title">Logowanie</h2>
+      <label>
+        Nickname
+        <input type="text" id="auth-username" autocomplete="username" maxlength="24" required />
+      </label>
+      <label>
+        Hasło
+        <input type="password" id="auth-password" autocomplete="current-password" required />
+      </label>
+      <div id="auth-error"></div>
+      <div id="auth-form-actions">
+        <button type="button" id="auth-back-btn">← Wstecz</button>
+        <button type="submit" id="auth-submit-btn">Zaloguj się</button>
+      </div>
+      <p id="auth-switch-hint"></p>
+    </form>
+  </div>
+</div>
+
+<div id="app-root" hidden>
+
 <div id="display-wrap">
   <div id="display">
     <canvas id="display-canvas"></canvas>
@@ -46,6 +84,7 @@
         </svg>
       </a>
       <button id="clear-btn">Wygaś</button>
+      <button id="logout-btn" title="Wyloguj się">🚪</button>
     </div>
   </div>
 
@@ -109,7 +148,10 @@
   </div>
 </div>
 
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
+<script src="auth.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

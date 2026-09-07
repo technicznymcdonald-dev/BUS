@@ -3,84 +3,62 @@
     "number": "92",
     "destination": "PODBÓRZ"
   },
-  {
+ {
     "number": "92",
     "destination": "KOŁŁATAJA"
-  },
-  {
+  }, {
     "number": "51",
     "destination": "GŁEBOKIE"
-  },
-  {
+  }, {
     "number": "51",
     "destination": "KOŁŁATAJA"
-  },
-  {
+  }, {
     "number": "78",
     "destination": "OS.ARKOSNKIE"
-  },
-  {
+  }, {
     "number": "78",
     "destination": "KOŁŁATAJA"
-  },
-  {
+  }, {
     "number": "57",
     "destination": "KOŁŁATAJA"
-  },
-  {
+  }, {
     "number": "57",
     "destination": "WARSZEWO"
-  },
-  {
+  }, {
     "number": "58",
     "destination": "STOCZNIA SZCZECINSKA"
-  },
-  {
+  }, {
     "number": "58",
     "destination": "GOCŁAW"
-  },
-  {
+  }, {
     "number": "59",
     "destination": "PLAC RODŁA"
-  },
-  {
+  }, {
     "number": "59",
     "destination": "WISZESŁAWA"
-  },
-  {
+  }, {
     "number": "63",
     "destination": "KOŁŁATAJA"
-  },
-  {
+  }, {
     "number": "68",
     "destination": "PLAC RODŁA"
-  },
-  {
+  }, {
     "number": "68",
     "destination": "KORMORANÓW"
-  },
-  {
+  }, {
     "number": "82",
     "destination": "KOŁŁATAJA"
-  },
-  {
+  }, {
     "number": "82",
     "destination": "KRUCZA DOM KOMBATANTA"
-  },
-  {
+  }, {
     "number": "522",
     "destination": "KOŁŁATAJA"
-  },
-  {
+  }, {
     "number": "522",
     "destination": "KORMORANÓW"
-  },
-  {
+  }, {
     "number": "522",
     "destination": "WARSZEWO"
-  },
-  {
-    "number": "87",
-    "destination": "SKM Dworzec Główny Owocowa"
   }
 ]

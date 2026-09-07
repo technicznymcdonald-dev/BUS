@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,6 +12,7 @@ const io = new Server(server);
 
 const LINES_FILE = path.join(__dirname, 'lines.json');
 const SOUNDMAP_FILE = path.join(__dirname, 'soundmap.json');
+const USERS_FILE = path.join(__dirname, 'users.json');
 const SOUNDS_DIR = path.join(__dirname, 'public', 'sounds');
 
 // ===================== TRWAŁY ZAPIS PRZEZ GITHUB (opcjonalne) =====================
@@ -99,6 +101,12 @@ async function bootstrapDataFromGithub() {
     fs.writeFileSync(SOUNDMAP_FILE, remoteSoundmap.content, 'utf8');
     console.log('GitHub sync: soundmap.json zaktualizowany z repozytorium.');
   }
+
+  const remoteUsers = await githubGetFile('users.json');
+  if (remoteUsers) {
+    fs.writeFileSync(USERS_FILE, remoteUsers.content, 'utf8');
+    console.log('GitHub sync: users.json zaktualizowany z repozytorium.');
+  }
 }
 
 // Domyślna mapa dźwięków - używana tylko przy pierwszym uruchomieniu,
@@ -177,6 +185,49 @@ function saveSoundMap(map) {
   githubPutFile('soundmap.json', json, 'Auto-zapis: soundmap.json').catch(() => {});
 }
 
+// ===================== UŻYTKOWNICY (REJESTRACJA / LOGOWANIE) =====================
+// users.json trzyma listę kont: { "nazwa_lower": { username, salt, hash } }
+// Hasła nigdy nie są zapisywane w jawnej postaci - tylko solony hash (scrypt).
+// Zapis użytkowników przechodzi przez ten sam mechanizm githubPutFile co
+// lines.json/soundmap.json, więc na Renderze rejestracja automatycznie
+// commituje się do repozytorium GitHub i przetrwa restart serwera.
+
+function loadUsers() {
+  try {
+    return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+  } catch (e) {
+    saveUsers({});
+    return {};
+  }
+}
+
+function saveUsers(users) {
+  const json = JSON.stringify(users, null, 2);
+  fs.writeFileSync(USERS_FILE, json, 'utf8');
+  githubPutFile('users.json', json, 'Auto-zapis: users.json (konta użytkowników)').catch(() => {});
+}
+
+function hashPassword(password, salt) {
+  const useSalt = salt || crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, useSalt, 64).toString('hex');
+  return { salt: useSalt, hash };
+}
+
+function verifyPassword(password, salt, expectedHash) {
+  const { hash } = hashPassword(password, salt);
+  const a = Buffer.from(hash, 'hex');
+  const b = Buffer.from(expectedHash, 'hex');
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+// Token "zapamiętaj urządzenie" - wyliczany deterministycznie z hasha hasła,
+// więc pozostaje ważny nawet po restarcie serwera (bez trzymania sesji w
+// pamięci), a jednocześnie nigdy nie jest samym hasłem w jawnej postaci.
+function makeRememberToken(usernameLower, passwordHash) {
+  return crypto.createHash('sha256').update(`${usernameLower}:${passwordHash}`).digest('hex');
+}
+
 function listSoundFiles() {
   try {
     return fs.readdirSync(SOUNDS_DIR).filter((f) => /\.(mp3|wav|ogg|m4a)$/i.test(f));
@@ -245,6 +296,73 @@ app.post('/api/config', (req, res) => {
   io.emit('lines-updated', lines);
   io.emit('soundmap-updated', soundMap);
   res.json({ ok: true });
+});
+
+// ---------- REJESTRACJA / LOGOWANIE ----------
+
+function normalizeUsername(username) {
+  return (username || '').toString().trim();
+}
+
+app.post('/api/register', (req, res) => {
+  const username = normalizeUsername(req.body && req.body.username);
+  const password = (req.body && req.body.password || '').toString();
+  const usernameLower = username.toLowerCase();
+
+  if (username.length < 3 || username.length > 24) {
+    return res.status(400).json({ error: 'Nazwa użytkownika musi mieć od 3 do 24 znaków.' });
+  }
+  if (!/^[a-zA-Z0-9ąćęłńóśźżĄĆĘŁŃÓŚŹŻ_\- ]+$/.test(username)) {
+    return res.status(400).json({ error: 'Nazwa użytkownika zawiera niedozwolone znaki.' });
+  }
+  if (password.length < 4) {
+    return res.status(400).json({ error: 'Hasło musi mieć co najmniej 4 znaki.' });
+  }
+
+  const users = loadUsers();
+  if (users[usernameLower]) {
+    return res.status(409).json({ error: 'Ta nazwa użytkownika jest już zajęta.' });
+  }
+
+  const { salt, hash } = hashPassword(password);
+  users[usernameLower] = { username, salt, hash, createdAt: Date.now() };
+  saveUsers(users);
+
+  const token = makeRememberToken(usernameLower, hash);
+  res.json({ ok: true, username, token });
+});
+
+app.post('/api/login', (req, res) => {
+  const username = normalizeUsername(req.body && req.body.username);
+  const password = (req.body && req.body.password || '').toString();
+  const usernameLower = username.toLowerCase();
+
+  const users = loadUsers();
+  const user = users[usernameLower];
+  if (!user || !verifyPassword(password, user.salt, user.hash)) {
+    return res.status(401).json({ error: 'Nieprawidłowa nazwa użytkownika lub hasło.' });
+  }
+
+  const token = makeRememberToken(usernameLower, user.hash);
+  res.json({ ok: true, username: user.username, token });
+});
+
+app.post('/api/session/validate', (req, res) => {
+  const username = normalizeUsername(req.body && req.body.username);
+  const token = (req.body && req.body.token || '').toString();
+  const usernameLower = username.toLowerCase();
+
+  const users = loadUsers();
+  const user = users[usernameLower];
+  if (!user || !token) {
+    return res.json({ ok: false });
+  }
+
+  const expected = makeRememberToken(usernameLower, user.hash);
+  const a = Buffer.from(token);
+  const b = Buffer.from(expected);
+  const valid = a.length === b.length && crypto.timingSafeEqual(a, b);
+  res.json({ ok: valid, username: valid ? user.username : undefined });
 });
 
 io.on('connection', (socket) => {

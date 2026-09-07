@@ -1,0 +1,8 @@
+{
+  "123": {
+    "username": "123",
+    "salt": "8ac2c1d20f1e0a77165cc42712d7dfc1",
+    "hash": "2291c0edca6535c63838bf4dcd7f47f438efae24181bfa89d3cd76f0dcb798b6496922e7f60f8b0ab1c330d5b9a8453ceb4debb5346595dec671b7148a9c5e1f",
+    "createdAt": 1788803034150
+  }
+}
