@@ -1,8 +1,8 @@
 {
-  "123": {
-    "username": "123",
-    "salt": "8ac2c1d20f1e0a77165cc42712d7dfc1",
-    "hash": "2291c0edca6535c63838bf4dcd7f47f438efae24181bfa89d3cd76f0dcb798b6496922e7f60f8b0ab1c330d5b9a8453ceb4debb5346595dec671b7148a9c5e1f",
-    "createdAt": 1788803034150
+  "wojciech": {
+    "username": "Wojciech",
+    "salt": "7b674d2ff481c214b9ded23cac3bcce0",
+    "hash": "ed093576b537d5409a9e1628bf0d763302d0d753e1a66e3f00616ad79db478f1313be9a84305afa09a7d31bcd8d0cf5d3ae571d7705bd778982420a197981000",
+    "createdAt": 1788875440649
   }
 }

@@ -22,14 +22,7 @@
 
     <div id="auth-remember-badge">Urządzenie zostanie zapamiętane na stałe (F10)</div>
 
-    <div id="auth-choice-screen">
-      <p id="auth-choice-hint">Zaloguj się lub załóż konto, aby korzystać z aplikacji.</p>
-      <button type="button" id="auth-choice-login-btn" class="auth-choice-btn">Zaloguj się</button>
-      <button type="button" id="auth-choice-register-btn" class="auth-choice-btn">Załóż konto</button>
-      <p id="auth-f10-hint">Wskazówka: naciśnij <kbd>F10</kbd>, aby zalogować się na stałe na tym urządzeniu.</p>
-    </div>
-
-    <form id="auth-form" hidden>
+    <form id="auth-form">
       <h2 id="auth-form-title">Logowanie</h2>
       <label>
         Nickname
@@ -41,10 +34,9 @@
       </label>
       <div id="auth-error"></div>
       <div id="auth-form-actions">
-        <button type="button" id="auth-back-btn">← Wstecz</button>
         <button type="submit" id="auth-submit-btn">Zaloguj się</button>
       </div>
-      <p id="auth-switch-hint"></p>
+      <p id="auth-f10-hint">Wskazówka: naciśnij <kbd>F10</kbd>, aby zalogować się na stałe na tym urządzeniu.</p>
     </form>
   </div>
 </div>
@@ -84,6 +76,7 @@
         </svg>
       </a>
       <button id="clear-btn">Wygaś</button>
+      <button id="admin-btn" title="Panel administratora" hidden>🛠️</button>
       <button id="logout-btn" title="Wyloguj się">🚪</button>
     </div>
   </div>
@@ -148,10 +141,35 @@
   </div>
 </div>
 
+<div id="admin-overlay">
+  <div id="admin-panel">
+    <div id="admin-header">
+      <h2>Panel administratora</h2>
+      <button id="admin-close-btn">✕</button>
+    </div>
+
+    <div id="admin-create-section">
+      <h3>Nowe konto</h3>
+      <form id="admin-create-form">
+        <input type="text" id="admin-new-username" placeholder="Nickname" maxlength="24" autocomplete="off" required />
+        <input type="password" id="admin-new-password" placeholder="Hasło" autocomplete="new-password" required />
+        <button type="submit">Utwórz konto</button>
+      </form>
+      <div id="admin-create-status"></div>
+    </div>
+
+    <div id="admin-users-section">
+      <h3>Konta użytkowników</h3>
+      <div id="admin-users-list"></div>
+    </div>
+  </div>
+</div>
+
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="auth.js"></script>
+<script src="admin.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

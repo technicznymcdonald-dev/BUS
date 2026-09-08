@@ -304,24 +304,35 @@ function normalizeUsername(username) {
   return (username || '').toString().trim();
 }
 
-app.post('/api/register', (req, res) => {
-  const username = normalizeUsername(req.body && req.body.username);
-  const password = (req.body && req.body.password || '').toString();
+// Nazwa konta, które ma dostęp do panelu administratora (bez rozróżniania
+// wielkości liter - porównanie zawsze po zamianie na małe litery).
+const ADMIN_USERNAME_LOWER = 'wojciech';
+
+function isAdminUsernameLower(usernameLower) {
+  return usernameLower === ADMIN_USERNAME_LOWER;
+}
+
+// Wspólna logika tworzenia konta - używana zarówno przez publiczny
+// endpoint /api/register (pozostawiony dla kompatybilności/API), jak i
+// przez panel administratora (/api/admin/users/create).
+function createUserAccount(rawUsername, rawPassword) {
+  const username = normalizeUsername(rawUsername);
+  const password = (rawPassword || '').toString();
   const usernameLower = username.toLowerCase();
 
   if (username.length < 3 || username.length > 24) {
-    return res.status(400).json({ error: 'Nazwa użytkownika musi mieć od 3 do 24 znaków.' });
+    return { ok: false, error: 'Nazwa użytkownika musi mieć od 3 do 24 znaków.' };
   }
   if (!/^[a-zA-Z0-9ąćęłńóśźżĄĆĘŁŃÓŚŹŻ_\- ]+$/.test(username)) {
-    return res.status(400).json({ error: 'Nazwa użytkownika zawiera niedozwolone znaki.' });
+    return { ok: false, error: 'Nazwa użytkownika zawiera niedozwolone znaki.' };
   }
   if (password.length < 4) {
-    return res.status(400).json({ error: 'Hasło musi mieć co najmniej 4 znaki.' });
+    return { ok: false, error: 'Hasło musi mieć co najmniej 4 znaki.' };
   }
 
   const users = loadUsers();
   if (users[usernameLower]) {
-    return res.status(409).json({ error: 'Ta nazwa użytkownika jest już zajęta.' });
+    return { ok: false, error: 'Ta nazwa użytkownika jest już zajęta.' };
   }
 
   const { salt, hash } = hashPassword(password);
@@ -329,7 +340,51 @@ app.post('/api/register', (req, res) => {
   saveUsers(users);
 
   const token = makeRememberToken(usernameLower, hash);
-  res.json({ ok: true, username, token });
+  return { ok: true, username, token };
+}
+
+// Sprawdza podany login+token względem users.json i zwraca dane
+// zalogowanego użytkownika, albo null jeśli sesja jest nieprawidłowa.
+function getValidatedSession(rawUsername, rawToken) {
+  const usernameLower = normalizeUsername(rawUsername).toLowerCase();
+  const token = (rawToken || '').toString();
+  if (!usernameLower || !token) return null;
+
+  const users = loadUsers();
+  const user = users[usernameLower];
+  if (!user) return null;
+
+  const expected = makeRememberToken(usernameLower, user.hash);
+  const a = Buffer.from(token);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+
+  return { usernameLower, user };
+}
+
+// Middleware-podobna funkcja pomocnicza dla endpointów panelu admina -
+// zwraca zalogowaną sesję, jeśli należy do administratora, w przeciwnym
+// razie sama wysyła odpowiedź 401/403 i zwraca null.
+function requireAdminSession(req, res) {
+  const { username, token } = req.body || {};
+  const session = getValidatedSession(username, token);
+  if (!session) {
+    res.status(401).json({ error: 'Wymagane zalogowanie.' });
+    return null;
+  }
+  if (!isAdminUsernameLower(session.usernameLower)) {
+    res.status(403).json({ error: 'Brak uprawnień administratora.' });
+    return null;
+  }
+  return session;
+}
+
+app.post('/api/register', (req, res) => {
+  const result = createUserAccount(req.body && req.body.username, req.body && req.body.password);
+  if (!result.ok) {
+    return res.status(result.error === 'Ta nazwa użytkownika jest już zajęta.' ? 409 : 400).json(result);
+  }
+  res.json(result);
 });
 
 app.post('/api/login', (req, res) => {
@@ -348,21 +403,53 @@ app.post('/api/login', (req, res) => {
 });
 
 app.post('/api/session/validate', (req, res) => {
-  const username = normalizeUsername(req.body && req.body.username);
-  const token = (req.body && req.body.token || '').toString();
-  const usernameLower = username.toLowerCase();
+  const session = getValidatedSession(req.body && req.body.username, req.body && req.body.token);
+  res.json({ ok: !!session, username: session ? session.user.username : undefined });
+});
+
+// ---------- PANEL ADMINISTRATORA (tylko konto "Wojciech") ----------
+
+app.post('/api/admin/users', (req, res) => {
+  const session = requireAdminSession(req, res);
+  if (!session) return;
 
   const users = loadUsers();
-  const user = users[usernameLower];
-  if (!user || !token) {
-    return res.json({ ok: false });
+  const list = Object.values(users).map((u) => ({ username: u.username, createdAt: u.createdAt || null }));
+  res.json({ ok: true, users: list });
+});
+
+app.post('/api/admin/users/create', (req, res) => {
+  const session = requireAdminSession(req, res);
+  if (!session) return;
+
+  const { newUsername, newPassword } = req.body || {};
+  const result = createUserAccount(newUsername, newPassword);
+  if (!result.ok) {
+    return res.status(result.error === 'Ta nazwa użytkownika jest już zajęta.' ? 409 : 400).json(result);
+  }
+  res.json(result);
+});
+
+app.post('/api/admin/users/delete', (req, res) => {
+  const session = requireAdminSession(req, res);
+  if (!session) return;
+
+  const targetLower = normalizeUsername(req.body && req.body.targetUsername).toLowerCase();
+  if (!targetLower) {
+    return res.status(400).json({ error: 'Nie podano nazwy użytkownika do usunięcia.' });
+  }
+  if (targetLower === session.usernameLower) {
+    return res.status(400).json({ error: 'Nie możesz usunąć własnego konta administratora.' });
   }
 
-  const expected = makeRememberToken(usernameLower, user.hash);
-  const a = Buffer.from(token);
-  const b = Buffer.from(expected);
-  const valid = a.length === b.length && crypto.timingSafeEqual(a, b);
-  res.json({ ok: valid, username: valid ? user.username : undefined });
+  const users = loadUsers();
+  if (!users[targetLower]) {
+    return res.status(404).json({ error: 'Nie znaleziono takiego użytkownika.' });
+  }
+
+  delete users[targetLower];
+  saveUsers(users);
+  res.json({ ok: true });
 });
 
 io.on('connection', (socket) => {

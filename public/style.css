@@ -691,32 +691,6 @@ body.fullscreen-mode #auto-btn { right: calc(env(safe-area-inset-right) + 174px)
   display: block;
 }
 
-#auth-choice-hint {
-  color: #aaa;
-  font-size: 14px;
-  margin: 0 0 16px 0;
-}
-
-.auth-choice-btn {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  border: 1px solid #444;
-  background: #1c1c1c;
-  color: #eee;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-#auth-choice-login-btn {
-  background: #ff8c00;
-  color: #000;
-  border: none;
-}
-
 #auth-f10-hint {
   color: #777;
   font-size: 12px;
@@ -771,15 +745,6 @@ body.fullscreen-mode #auto-btn { right: calc(env(safe-area-inset-right) + 174px)
   margin-top: 8px;
 }
 
-#auth-back-btn {
-  background: #333;
-  color: #eee;
-  border: 1px solid #555;
-  border-radius: 6px;
-  padding: 10px 14px;
-  cursor: pointer;
-}
-
 #auth-submit-btn {
   flex: 1;
   background: #ff8c00;
@@ -796,20 +761,8 @@ body.fullscreen-mode #auto-btn { right: calc(env(safe-area-inset-right) + 174px)
   cursor: default;
 }
 
-#auth-switch-hint {
-  text-align: center;
-  font-size: 13px;
-  color: #999;
-  margin: 14px 0 0 0;
-}
-
-#auth-switch-hint a {
-  color: #ff8c00;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-#logout-btn {
+#logout-btn,
+#admin-btn {
   background: #333;
   color: #eee;
   border: 1px solid #555;
@@ -818,4 +771,141 @@ body.fullscreen-mode #auto-btn { right: calc(env(safe-area-inset-right) + 174px)
   height: 34px;
   font-size: 15px;
   cursor: pointer;
+}
+
+#admin-btn {
+  border-color: #ff8c00;
+}
+
+/* ---------- PANEL ADMINISTRATORA ---------- */
+#admin-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 70;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+#admin-overlay.visible {
+  display: flex;
+}
+
+#admin-panel {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 10px;
+  padding: 16px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+#admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+#admin-header h2 {
+  font-size: 17px;
+  margin: 0;
+}
+
+#admin-close-btn {
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+#admin-create-section h3,
+#admin-users-section h3 {
+  font-size: 13px;
+  color: #aaa;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+#admin-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+#admin-create-form input {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #1c1c1c;
+  color: #eee;
+  font-size: 15px;
+}
+
+#admin-create-form button {
+  background: #ff8c00;
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#admin-create-status {
+  min-height: 16px;
+  font-size: 13px;
+  color: #6fdc6f;
+  margin-bottom: 18px;
+}
+
+#admin-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #1c1c1c;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.admin-user-name {
+  color: #eee;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-user-delete-btn {
+  background: #3a1414;
+  border: 1px solid #ff5c5c;
+  color: #ff8080;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.admin-users-empty {
+  color: #888;
+  font-size: 13px;
+  text-align: center;
+  padding: 10px 0;
 }

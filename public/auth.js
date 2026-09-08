@@ -1,11 +1,13 @@
-/* ===================== SYSTEM LOGOWANIA / REJESTRACJI =====================
-   Zanim aplikacja stanie się widoczna, użytkownik musi się zalogować lub
-   założyć konto (nickname + hasło, nickname unikalny). Domyślnie logowanie
-   działa tylko na czas tej karty przeglądarki (sessionStorage) - po ponownym
-   wejściu na stronę trzeba się zalogować od nowa. Jeśli na ekranie wyboru
-   logowania/rejestracji użytkownik naciśnie F10, włącza się tryb "zapamiętaj
-   to urządzenie na stałe" - dane logowania trafiają wtedy do localStorage
-   i urządzenie zostaje zalogowane na stałe, aż do wylogowania. */
+/* ===================== SYSTEM LOGOWANIA =====================
+   Zanim aplikacja stanie się widoczna, użytkownik musi się zalogować
+   (nickname + hasło). Rejestracja nie jest dostępna z tego ekranu -
+   konta tworzy administrator (konto "Wojciech") w panelu administratora.
+   Domyślnie logowanie działa tylko na czas tej karty przeglądarki
+   (sessionStorage) - po ponownym wejściu na stronę trzeba się zalogować
+   od nowa. Jeśli na ekranie logowania użytkownik naciśnie F10, włącza
+   się tryb "zapamiętaj to urządzenie na stałe" - dane logowania trafiają
+   wtedy do localStorage i urządzenie zostaje zalogowane na stałe, aż do
+   wylogowania. */
 
 (function () {
   const REMEMBER_KEY = 'busapp_auth';   // localStorage - logowanie na stałe (F10)
@@ -16,22 +18,24 @@
   const authBox = document.getElementById('auth-box');
   const rememberBadge = document.getElementById('auth-remember-badge');
 
-  const choiceScreen = document.getElementById('auth-choice-screen');
-  const choiceLoginBtn = document.getElementById('auth-choice-login-btn');
-  const choiceRegisterBtn = document.getElementById('auth-choice-register-btn');
-  const f10Hint = document.getElementById('auth-f10-hint');
-
   const form = document.getElementById('auth-form');
-  const formTitle = document.getElementById('auth-form-title');
   const usernameInput = document.getElementById('auth-username');
   const passwordInput = document.getElementById('auth-password');
   const errorEl = document.getElementById('auth-error');
-  const backBtn = document.getElementById('auth-back-btn');
   const submitBtn = document.getElementById('auth-submit-btn');
-  const switchHint = document.getElementById('auth-switch-hint');
+  const f10Hint = document.getElementById('auth-f10-hint');
 
-  let authMode = 'login'; // 'login' | 'register'
   let rememberDevice = false;
+
+  // Stan sesji dostępny globalnie (np. dla panelu administratora), żeby
+  // nie trzymać hasła/tokenu w kilku miejscach.
+  window.busappAuth = null;
+
+  function notifyAuthChanged() {
+    document.dispatchEvent(new CustomEvent('busapp-auth-changed', {
+      detail: window.busappAuth,
+    }));
+  }
 
   function setError(msg) {
     errorEl.textContent = msg || '';
@@ -45,48 +49,23 @@
       : 'Wskazówka: naciśnij F10, aby zalogować się na stałe na tym urządzeniu.';
   }
 
-  function showChoiceScreen() {
-    setError('');
-    choiceScreen.hidden = false;
-    form.hidden = true;
-  }
-
-  function showForm(mode) {
-    authMode = mode;
-    setError('');
-    choiceScreen.hidden = true;
-    form.hidden = false;
-    usernameInput.value = '';
-    passwordInput.value = '';
-
-    if (mode === 'register') {
-      formTitle.textContent = rememberDevice ? 'Rejestracja (urządzenie na stałe)' : 'Rejestracja';
-      submitBtn.textContent = 'Załóż konto';
-      switchHint.innerHTML = 'Masz już konto? <a href="#" id="auth-switch-link">Zaloguj się</a>';
-    } else {
-      formTitle.textContent = rememberDevice ? 'Logowanie (urządzenie na stałe)' : 'Logowanie';
-      submitBtn.textContent = 'Zaloguj się';
-      switchHint.innerHTML = 'Nie masz konta? <a href="#" id="auth-switch-link">Załóż je</a>';
-    }
-
-    document.getElementById('auth-switch-link').addEventListener('click', (e) => {
-      e.preventDefault();
-      showForm(mode === 'register' ? 'login' : 'register');
-    });
-
-    usernameInput.focus();
-  }
-
   function showAuthOverlay() {
     overlay.classList.add('visible');
     appRoot.hidden = true;
+    setError('');
+    usernameInput.value = '';
+    passwordInput.value = '';
     updateRememberVisuals();
-    showChoiceScreen();
+    window.busappAuth = null;
+    notifyAuthChanged();
+    usernameInput.focus();
   }
 
-  function showApp() {
+  function showApp(username, token) {
     overlay.classList.remove('visible');
     appRoot.hidden = false;
+    window.busappAuth = { username, token };
+    notifyAuthChanged();
   }
 
   function clearStoredAuth() {
@@ -133,7 +112,7 @@
       });
       const data = await res.json();
       if (data && data.ok) {
-        showApp();
+        showApp(data.username || parsed.username, parsed.token);
       } else {
         clearStoredAuth();
         showAuthOverlay();
@@ -159,7 +138,7 @@
     setError('');
 
     try {
-      const res = await fetch(authMode === 'register' ? '/api/register' : '/api/login', {
+      const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -173,7 +152,7 @@
       }
 
       storeAuth(data.username, data.token, rememberDevice);
-      showApp();
+      showApp(data.username, data.token);
     } catch (e) {
       setError('Brak połączenia z serwerem. Spróbuj ponownie.');
     } finally {
@@ -181,9 +160,6 @@
     }
   }
 
-  choiceLoginBtn.addEventListener('click', () => showForm('login'));
-  choiceRegisterBtn.addEventListener('click', () => showForm('register'));
-  backBtn.addEventListener('click', showChoiceScreen);
   form.addEventListener('submit', submitAuth);
 
   document.addEventListener('keydown', (e) => {
@@ -194,9 +170,6 @@
     e.preventDefault();
     rememberDevice = !rememberDevice;
     updateRememberVisuals();
-    if (!form.hidden) {
-      showForm(authMode); // odśwież nagłówek/tytuł formularza pod nowy tryb
-    }
   });
 
   window.busappLogout = function busappLogout() {
