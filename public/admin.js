@@ -81,19 +81,46 @@
 
         const row = document.createElement('div');
         row.className = 'admin-user-row';
+        if (u.suspended) row.classList.add('suspended');
+
+        const leftGroup = document.createElement('div');
+        leftGroup.className = 'admin-user-left';
 
         const nameEl = document.createElement('span');
         nameEl.className = 'admin-user-name';
         nameEl.textContent = isAdminAccount ? `${u.username} (administrator)` : u.username;
-        row.appendChild(nameEl);
+        leftGroup.appendChild(nameEl);
+
+        if (u.suspended) {
+          const badge = document.createElement('span');
+          badge.className = 'admin-user-suspended-badge';
+          badge.textContent = 'Zawieszone';
+          leftGroup.appendChild(badge);
+        }
+
+        row.appendChild(leftGroup);
 
         if (!isAdminAccount) {
+          const actions = document.createElement('div');
+          actions.className = 'admin-user-actions';
+
+          const suspendBtn = document.createElement('button');
+          suspendBtn.type = 'button';
+          suspendBtn.className = u.suspended
+            ? 'admin-user-unsuspend-btn'
+            : 'admin-user-suspend-btn';
+          suspendBtn.textContent = u.suspended ? 'Odwieś' : 'Zawieś';
+          suspendBtn.addEventListener('click', () => toggleSuspend(u.username, !u.suspended));
+          actions.appendChild(suspendBtn);
+
           const delBtn = document.createElement('button');
           delBtn.type = 'button';
           delBtn.className = 'admin-user-delete-btn';
           delBtn.textContent = 'Usuń';
           delBtn.addEventListener('click', () => deleteUser(u.username));
-          row.appendChild(delBtn);
+          actions.appendChild(delBtn);
+
+          row.appendChild(actions);
         }
 
         usersList.appendChild(row);
@@ -118,6 +145,15 @@
     if (!window.confirm(`Usunąć konto "${targetUsername}"?`)) return;
     try {
       await callAdminApi('/api/admin/users/delete', { targetUsername });
+      loadUsers();
+    } catch (e) {
+      window.alert(e.message);
+    }
+  }
+
+  async function toggleSuspend(targetUsername, suspended) {
+    try {
+      await callAdminApi('/api/admin/users/suspend', { targetUsername, suspended });
       loadUsers();
     } catch (e) {
       window.alert(e.message);

@@ -116,6 +116,9 @@
       } else {
         clearStoredAuth();
         showAuthOverlay();
+        if (data && data.suspended) {
+          setError(data.error || 'Konto zawieszone. Napisz do supportu.');
+        }
       }
     } catch (e) {
       // Brak połączenia z serwerem - nie blokujemy, ale bez potwierdzenia

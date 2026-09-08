@@ -883,12 +883,67 @@ body.fullscreen-mode #auto-btn { right: calc(env(safe-area-inset-right) + 174px)
   padding: 10px 12px;
 }
 
+.admin-user-row.suspended {
+  border-color: #ff5c5c;
+  background: #221414;
+}
+
+.admin-user-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .admin-user-name {
   color: #eee;
   font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.admin-user-suspended-badge {
+  background: rgba(255, 92, 92, 0.15);
+  border: 1px solid #ff5c5c;
+  color: #ff8080;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-radius: 12px;
+  padding: 3px 8px;
+  flex-shrink: 0;
+}
+
+.admin-user-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.admin-user-suspend-btn {
+  background: #2a2410;
+  border: 1px solid #ffb300;
+  color: #ffcc55;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.admin-user-unsuspend-btn {
+  background: #10281a;
+  border: 1px solid #4dff4d;
+  color: #7fe87f;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .admin-user-delete-btn {

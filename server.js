@@ -397,6 +397,9 @@ app.post('/api/login', (req, res) => {
   if (!user || !verifyPassword(password, user.salt, user.hash)) {
     return res.status(401).json({ error: 'Nieprawidłowa nazwa użytkownika lub hasło.' });
   }
+  if (user.suspended) {
+    return res.status(403).json({ error: 'Konto zawieszone. Napisz do supportu.', suspended: true });
+  }
 
   const token = makeRememberToken(usernameLower, user.hash);
   res.json({ ok: true, username: user.username, token });
@@ -404,7 +407,13 @@ app.post('/api/login', (req, res) => {
 
 app.post('/api/session/validate', (req, res) => {
   const session = getValidatedSession(req.body && req.body.username, req.body && req.body.token);
-  res.json({ ok: !!session, username: session ? session.user.username : undefined });
+  if (!session) {
+    return res.json({ ok: false });
+  }
+  if (session.user.suspended) {
+    return res.json({ ok: false, suspended: true, error: 'Konto zawieszone. Napisz do supportu.' });
+  }
+  res.json({ ok: true, username: session.user.username });
 });
 
 // ---------- PANEL ADMINISTRATORA (tylko konto "Wojciech") ----------
@@ -414,8 +423,36 @@ app.post('/api/admin/users', (req, res) => {
   if (!session) return;
 
   const users = loadUsers();
-  const list = Object.values(users).map((u) => ({ username: u.username, createdAt: u.createdAt || null }));
+  const list = Object.values(users).map((u) => ({
+    username: u.username,
+    createdAt: u.createdAt || null,
+    suspended: !!u.suspended,
+  }));
   res.json({ ok: true, users: list });
+});
+
+app.post('/api/admin/users/suspend', (req, res) => {
+  const session = requireAdminSession(req, res);
+  if (!session) return;
+
+  const targetLower = normalizeUsername(req.body && req.body.targetUsername).toLowerCase();
+  const suspended = !!(req.body && req.body.suspended);
+
+  if (!targetLower) {
+    return res.status(400).json({ error: 'Nie podano nazwy użytkownika.' });
+  }
+  if (targetLower === session.usernameLower) {
+    return res.status(400).json({ error: 'Nie możesz zawiesić własnego konta administratora.' });
+  }
+
+  const users = loadUsers();
+  if (!users[targetLower]) {
+    return res.status(404).json({ error: 'Nie znaleziono takiego użytkownika.' });
+  }
+
+  users[targetLower].suspended = suspended;
+  saveUsers(users);
+  res.json({ ok: true, username: users[targetLower].username, suspended });
 });
 
 app.post('/api/admin/users/create', (req, res) => {
